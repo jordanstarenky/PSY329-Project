@@ -10,7 +10,71 @@ output: "github_document"
 library(haven)
 library(dplyr)
 library(ggplot2)
-#load
 
+# Set working directory
+setwd("/Users/jostarenky/Documents/GitHub/PSY329-Project")
+
+# Read the TSV file
+data <- read.table("/Users/jostarenky/Downloads/ICPSR_38964\ 2/DS0001/38964-0001-Data.tsv", sep = "\t", header = TRUE, fill = TRUE, quote = "")
+
+# Write the data to a CSV file
+write.csv(data, "38964-0001-Data.csv", row.names = FALSE)
+
+#open file
+data <- read.csv("/Users/jostarenky/Documents/GitHub/PSY329-Project/38964-0001-Data.csv")
+
+#filter for desired variables
+new_dataset <- data %>%
+  select(SEX, MARSTAT, LONELY_A, LONELY_B, LONELY_C)
+
+```
+
+#Clean Data
+```{r}
+filtered_dataset <- new_dataset %>% filter(LONELY_A != "99", LONELY_B != "99", LONELY_C != "99")
+```
+
+#Recode Variables
+```{r}
+filtered_dataset <- filtered_dataset%>%
+  mutate_at(c('SEX'),funs(str_replace(., "1", "Male")))
+
+filtered_dataset <- filtered_dataset%>%
+  mutate_at(c('SEX'),funs(str_replace(., "2", "Female")))
+
+filtered_dataset <- filtered_dataset%>%
+  mutate_at(c('MARSTAT'),funs(str_replace(., "1", "Partnered")))
+
+new_dataset <- new_dataset%>%
+  mutate_at(c('MARSTAT'),funs(str_replace(., "2", "Single")))
+
+new_dataset <- new_dataset%>%
+  mutate_at(c('MARSTAT'),funs(str_replace(., "3", "Single")))
+
+new_dataset <- new_dataset%>%
+  mutate_at(c('MARSTAT'),funs(str_replace(., "4", "Single")))
+
+new_dataset <- new_dataset%>%
+  mutate_at(c('MARSTAT'),funs(str_replace(., "5", "Single")))
+
+new_dataset <- new_dataset%>%
+  mutate_at(c('MARSTAT'),funs(str_replace(., "6", "Partnered")))
+
+new_dataset <- new_dataset %>%
+  mutate(LONELINESS = rowSums(cbind(LONELY_A, LONELY_B, LONELY_C)))
+
+```
+
+
+
+#Normality
+```{r}
+ggplot(new_dataset, aes(x = LONELINESS)) + geom_histogram(binwidth = 1) + theme_classic()
+
+ggplot(new_dataset, aes(x = LONELINESS)) + geom_density(adjust = 2)  + theme_classic()
+
+qq<-ggplot(new_dataset, aes(sample = LONELINESS)) + geom_qq()  + theme_classic()
+
+qq+ geom_qq_line()
 ```
 
