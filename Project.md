@@ -151,7 +151,7 @@ data <- read.csv("/Users/jostarenky/Documents/GitHub/PSY329-Project/38964-0001-D
 
 #filter for desired variables
 filtered_dataset <- data %>%
-  select(SEX, MARSTAT, LONELY_A, LONELY_B, LONELY_C)
+  select(SEX, MARSTAT, LONELY_A, LONELY_B, LONELY_C, HAPPY)
 ```
 
 \#Clean Data
@@ -658,3 +658,250 @@ ggplot(plot2, aes(x = Group, y = LONELINESS, fill = Group)) +
 ```
 
 ![](Project_files/figure-gfm/unnamed-chunk-10-2.png)<!-- -->
+
+``` r
+#Recoding happiness variable (was reverse coded)
+filtered_dataset$HAPPY <- 5 - filtered_dataset$HAPPY
+```
+
+``` r
+#checking assumptions for happiness
+#normality plots
+ggplot(filtered_dataset, aes(x = HAPPY)) + geom_histogram(binwidth = 1) + theme_classic()
+```
+
+![](Project_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+
+``` r
+ggplot(filtered_dataset, aes(x = HAPPY)) + geom_density(adjust = 2)  + theme_classic()
+```
+
+![](Project_files/figure-gfm/unnamed-chunk-12-2.png)<!-- -->
+
+``` r
+qq<-ggplot(filtered_dataset, aes(sample = HAPPY)) + geom_qq()  + theme_classic()
+
+qq+ geom_qq_line()
+```
+
+![](Project_files/figure-gfm/unnamed-chunk-12-3.png)<!-- -->
+
+``` r
+#normality tests
+describe(filtered_dataset$HAPPY)
+```
+
+    ##    vars    n mean   sd median trimmed mad min max range  skew kurtosis   se
+    ## X1    1 7594 3.02 0.73      3    3.06   0   1   4     3 -0.45     0.06 0.01
+
+``` r
+#normal
+
+describeBy(HAPPY ~ SEX, data = filtered_dataset)
+```
+
+    ## 
+    ##  Descriptive statistics by group 
+    ## SEX: Female
+    ##       vars    n mean   sd median trimmed mad min max range  skew kurtosis   se
+    ## HAPPY    1 3948    3 0.72      3    3.04   0   1   4     3 -0.45     0.18 0.01
+    ## ------------------------------------------------------------ 
+    ## SEX: Male
+    ##       vars    n mean   sd median trimmed mad min max range  skew kurtosis   se
+    ## HAPPY    1 3646 3.04 0.74      3    3.09   0   1   4     3 -0.45    -0.06 0.01
+
+``` r
+describeBy(HAPPY ~ MARSTAT, data = filtered_dataset)
+```
+
+    ## 
+    ##  Descriptive statistics by group 
+    ## MARSTAT: Partnered
+    ##       vars    n mean   sd median trimmed mad min max range skew kurtosis   se
+    ## HAPPY    1 3643 3.15 0.69      3    3.21   0   1   4     3 -0.5     0.14 0.01
+    ## ------------------------------------------------------------ 
+    ## MARSTAT: Single
+    ##       vars    n mean   sd median trimmed mad min max range  skew kurtosis   se
+    ## HAPPY    1 3951  2.9 0.74      3    2.93   0   1   4     3 -0.39     0.01 0.01
+
+``` r
+#variances
+filtered_dataset%>%
+  group_by(SEX) %>%
+  summarize(variance = var(HAPPY))
+```
+
+    ##    variance
+    ## 1 0.5324719
+
+``` r
+filtered_dataset%>%
+  group_by(MARSTAT) %>%
+  summarize(variance = var(HAPPY))
+```
+
+    ##    variance
+    ## 1 0.5324719
+
+``` r
+mod<-MANOVA(filtered_dataset, dv = "HAPPY", between = c("SEX", "MARSTAT")) 
+```
+
+    ## 
+    ## ====== ANOVA (Between-Subjects Design) ======
+    ## 
+    ## Descriptives:
+    ## ────────────────────────────────────
+    ##   "SEX" "MARSTAT"  Mean    S.D.    n
+    ## ────────────────────────────────────
+    ##  Female Partnered 3.099 (0.689) 1880
+    ##  Female Single    2.918 (0.737) 2068
+    ##  Male   Partnered 3.206 (0.697) 1763
+    ##  Male   Single    2.890 (0.746) 1883
+    ## ────────────────────────────────────
+    ## Total sample size: N = 7594
+    ## 
+    ## ANOVA Table:
+    ## Dependent variable(s):      HAPPY
+    ## Between-subjects factor(s): SEX, MARSTAT
+    ## Within-subjects factor(s):  –
+    ## Covariate(s):               –
+    ## ────────────────────────────────────────────────────────────────────────────────
+    ##                     MS   MSE df1  df2       F     p     η²p [90% CI of η²p]  η²G
+    ## ────────────────────────────────────────────────────────────────────────────────
+    ## SEX              3.013 0.516   1 7590   5.839  .016 *     .001 [.000, .002] .001
+    ## MARSTAT        117.111 0.516   1 7590 226.944 <.001 ***   .029 [.023, .036] .029
+    ## SEX * MARSTAT    8.655 0.516   1 7590  16.772 <.001 ***   .002 [.001, .004] .002
+    ## ────────────────────────────────────────────────────────────────────────────────
+    ## MSE = mean square error (the residual variance of the linear model)
+    ## η²p = partial eta-squared = SS / (SS + SSE) = F * df1 / (F * df1 + df2)
+    ## ω²p = partial omega-squared = (F - 1) * df1 / (F * df1 + df2 + 1)
+    ## η²G = generalized eta-squared (see Olejnik & Algina, 2003)
+    ## Cohen’s f² = η²p / (1 - η²p)
+    ## 
+    ## Levene’s Test for Homogeneity of Variance:
+    ## ────────────────────────────────────────
+    ##            Levene’s F df1  df2     p    
+    ## ────────────────────────────────────────
+    ## DV: HAPPY       7.437   3 7590 <.001 ***
+    ## ────────────────────────────────────────
+
+``` r
+EMMEANS(mod, effect = "SEX", by = "MARSTAT", p.adjust = "none")
+```
+
+    ## ------ EMMEANS (effect = "SEX") ------
+    ## 
+    ## Joint Tests of "SEX":
+    ## ───────────────────────────────────────────────────────────────
+    ##  Effect "MARSTAT" df1  df2      F     p     η²p [90% CI of η²p]
+    ## ───────────────────────────────────────────────────────────────
+    ##     SEX Partnered   1 7590 20.386 <.001 ***   .003 [.001, .005]
+    ##     SEX Single      1 7590  1.468  .226       .000 [.000, .001]
+    ## ───────────────────────────────────────────────────────────────
+    ## Note. Simple effects of repeated measures with 3 or more levels
+    ## are different from the results obtained with SPSS MANOVA syntax.
+    ## 
+    ## Estimated Marginal Means of "SEX":
+    ## ───────────────────────────────────────────────
+    ##   "SEX" "MARSTAT" Mean [95% CI of Mean]    S.E.
+    ## ───────────────────────────────────────────────
+    ##  Female Partnered  3.099 [3.066, 3.131] (0.017)
+    ##  Male   Partnered  3.206 [3.173, 3.240] (0.017)
+    ##  Female Single     2.918 [2.887, 2.949] (0.016)
+    ##  Male   Single     2.890 [2.858, 2.923] (0.017)
+    ## ───────────────────────────────────────────────
+    ## 
+    ## Pairwise Comparisons of "SEX":
+    ## ───────────────────────────────────────────────────────────────────────────────────────
+    ##       Contrast "MARSTAT" Estimate    S.E.   df      t     p     Cohen’s d [95% CI of d]
+    ## ───────────────────────────────────────────────────────────────────────────────────────
+    ##  Male - Female Partnered    0.108 (0.024) 7590  4.515 <.001 ***   0.150 [ 0.085, 0.215]
+    ##  Male - Female Single      -0.028 (0.023) 7590 -1.212  .226      -0.039 [-0.101, 0.024]
+    ## ───────────────────────────────────────────────────────────────────────────────────────
+    ## Pooled SD for computing Cohen’s d: 0.718
+    ## 
+    ## Disclaimer:
+    ## By default, pooled SD is Root Mean Square Error (RMSE).
+    ## There is much disagreement on how to compute Cohen’s d.
+    ## You are completely responsible for setting `sd.pooled`.
+    ## You might also use `effectsize::t_to_d()` to compute d.
+
+``` r
+EMMEANS(mod, effect = "MARSTAT", by = "SEX", p.adjust = "none")
+```
+
+    ## ------ EMMEANS (effect = "MARSTAT") ------
+    ## 
+    ## Joint Tests of "MARSTAT":
+    ## ──────────────────────────────────────────────────────────────
+    ##   Effect  "SEX" df1  df2       F     p     η²p [90% CI of η²p]
+    ## ──────────────────────────────────────────────────────────────
+    ##  MARSTAT Female   1 7590  62.616 <.001 ***   .008 [.005, .012]
+    ##  MARSTAT Male     1 7590 176.633 <.001 ***   .023 [.018, .029]
+    ## ──────────────────────────────────────────────────────────────
+    ## Note. Simple effects of repeated measures with 3 or more levels
+    ## are different from the results obtained with SPSS MANOVA syntax.
+    ## 
+    ## Estimated Marginal Means of "MARSTAT":
+    ## ───────────────────────────────────────────────
+    ##  "MARSTAT"  "SEX" Mean [95% CI of Mean]    S.E.
+    ## ───────────────────────────────────────────────
+    ##  Partnered Female  3.099 [3.066, 3.131] (0.017)
+    ##  Single    Female  2.918 [2.887, 2.949] (0.016)
+    ##  Partnered Male    3.206 [3.173, 3.240] (0.017)
+    ##  Single    Male    2.890 [2.858, 2.923] (0.017)
+    ## ───────────────────────────────────────────────
+    ## 
+    ## Pairwise Comparisons of "MARSTAT":
+    ## ──────────────────────────────────────────────────────────────────────────────────────────
+    ##            Contrast  "SEX" Estimate    S.E.   df       t     p     Cohen’s d [95% CI of d]
+    ## ──────────────────────────────────────────────────────────────────────────────────────────
+    ##  Single - Partnered Female   -0.181 (0.023) 7590  -7.913 <.001 *** -0.252 [-0.315, -0.190]
+    ##  Single - Partnered Male     -0.316 (0.024) 7590 -13.290 <.001 *** -0.440 [-0.505, -0.375]
+    ## ──────────────────────────────────────────────────────────────────────────────────────────
+    ## Pooled SD for computing Cohen’s d: 0.718
+    ## 
+    ## Disclaimer:
+    ## By default, pooled SD is Root Mean Square Error (RMSE).
+    ## There is much disagreement on how to compute Cohen’s d.
+    ## You are completely responsible for setting `sd.pooled`.
+    ## You might also use `effectsize::t_to_d()` to compute d.
+
+``` r
+plot<-summarySE(filtered_dataset, measurevar="HAPPY", groupvars=c("SEX", "MARSTAT"))
+
+plot
+```
+
+    ##      SEX   MARSTAT    N    HAPPY        sd         se         ci
+    ## 1 Female Partnered 1880 3.098936 0.6888444 0.01588701 0.03115804
+    ## 2 Female    Single 2068 2.917795 0.7367685 0.01620152 0.03177300
+    ## 3   Male Partnered 1763 3.206466 0.6965320 0.01658880 0.03253580
+    ## 4   Male    Single 1883 2.890069 0.7463138 0.01719873 0.03373058
+
+``` r
+plot2<-summarySE(filtered_dataset, measurevar="HAPPY", groupvars=c("Group"))
+
+plot2
+```
+
+    ##             Group    N    HAPPY        sd         se         ci
+    ## 1   Partnered Men 1763 3.206466 0.6965320 0.01658880 0.03253580
+    ## 2 Partnered Women 1880 3.098936 0.6888444 0.01588701 0.03115804
+    ## 3      Single Men 1883 2.890069 0.7463138 0.01719873 0.03373058
+    ## 4    Single Women 2068 2.917795 0.7367685 0.01620152 0.03177300
+
+``` r
+ggplot(plot, aes(x = SEX, y = HAPPY, fill = SEX)) +
+  geom_col() + facet_wrap(~ MARSTAT) + theme_bruce()
+```
+
+![](Project_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+
+``` r
+ggplot(plot2, aes(x = Group, y = HAPPY, fill = Group)) +
+  geom_col()  + theme_bruce() + theme(axis.text.x = element_text(angle = -10))
+```
+
+![](Project_files/figure-gfm/unnamed-chunk-14-2.png)<!-- -->

@@ -35,7 +35,7 @@ data <- read.csv("/Users/jostarenky/Documents/GitHub/PSY329-Project/38964-0001-D
 
 #filter for desired variables
 filtered_dataset <- data %>%
-  select(SEX, MARSTAT, LONELY_A, LONELY_B, LONELY_C)
+  select(SEX, MARSTAT, LONELY_A, LONELY_B, LONELY_C, HAPPY)
 
 ```
 
@@ -152,6 +152,63 @@ ggplot(plot, aes(x = SEX, y = LONELINESS, fill = SEX)) +
   geom_col() + facet_wrap(~ MARSTAT) + theme_bruce()
 
 ggplot(plot2, aes(x = Group, y = LONELINESS, fill = Group)) +
+  geom_col()  + theme_bruce() + theme(axis.text.x = element_text(angle = -10))
+```
+```{r}
+#Recoding happiness variable (was reverse coded)
+filtered_dataset$HAPPY <- 5 - filtered_dataset$HAPPY
+
+```
+
+```{r}
+#checking assumptions for happiness
+#normality plots
+ggplot(filtered_dataset, aes(x = HAPPY)) + geom_histogram(binwidth = 1) + theme_classic()
+
+ggplot(filtered_dataset, aes(x = HAPPY)) + geom_density(adjust = 2)  + theme_classic()
+
+qq<-ggplot(filtered_dataset, aes(sample = HAPPY)) + geom_qq()  + theme_classic()
+
+qq+ geom_qq_line()
+
+#normality tests
+describe(filtered_dataset$HAPPY)
+#normal
+
+describeBy(HAPPY ~ SEX, data = filtered_dataset)
+describeBy(HAPPY ~ MARSTAT, data = filtered_dataset)
+
+#variances
+filtered_dataset%>%
+  group_by(SEX) %>%
+  summarize(variance = var(HAPPY))
+
+filtered_dataset%>%
+  group_by(MARSTAT) %>%
+  summarize(variance = var(HAPPY))
+
+```
+
+```{r}
+mod<-MANOVA(filtered_dataset, dv = "HAPPY", between = c("SEX", "MARSTAT")) 
+
+EMMEANS(mod, effect = "SEX", by = "MARSTAT", p.adjust = "none")
+
+EMMEANS(mod, effect = "MARSTAT", by = "SEX", p.adjust = "none")
+```
+```{r}
+plot<-summarySE(filtered_dataset, measurevar="HAPPY", groupvars=c("SEX", "MARSTAT"))
+
+plot
+
+plot2<-summarySE(filtered_dataset, measurevar="HAPPY", groupvars=c("Group"))
+
+plot2
+
+ggplot(plot, aes(x = SEX, y = HAPPY, fill = SEX)) +
+  geom_col() + facet_wrap(~ MARSTAT) + theme_bruce()
+
+ggplot(plot2, aes(x = Group, y = HAPPY, fill = Group)) +
   geom_col()  + theme_bruce() + theme(axis.text.x = element_text(angle = -10))
 ```
 
