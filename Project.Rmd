@@ -7,9 +7,19 @@ output: "github_document"
 
 
 ```{r}
-library(haven)
+library(car)
 library(dplyr)
+library(tidyr)
 library(ggplot2)
+library(psych)
+library(haven)
+library(Rmisc)
+library(rstatix)
+library(emmeans)
+library(bruceR)
+library(dplyr)
+library(labelled)
+
 
 # Set working directory
 setwd("/Users/jostarenky/Documents/GitHub/PSY329-Project")
@@ -24,14 +34,16 @@ write.csv(data, "38964-0001-Data.csv", row.names = FALSE)
 data <- read.csv("/Users/jostarenky/Documents/GitHub/PSY329-Project/38964-0001-Data.csv")
 
 #filter for desired variables
-new_dataset <- data %>%
+filtered_dataset <- data %>%
   select(SEX, MARSTAT, LONELY_A, LONELY_B, LONELY_C)
 
 ```
 
 #Clean Data
 ```{r}
-filtered_dataset <- new_dataset %>% filter(LONELY_A != "99", LONELY_B != "99", LONELY_C != "99")
+filtered_dataset <- filtered_dataset %>% filter(LONELY_A != "99", LONELY_B != "99", LONELY_C != "99")
+filtered_dataset <- filtered_dataset %>% filter(SEX != "3")
+filtered_dataset <- filtered_dataset %>% filter(MARSTAT != "99")
 ```
 
 #Recode Variables
@@ -45,22 +57,22 @@ filtered_dataset <- filtered_dataset%>%
 filtered_dataset <- filtered_dataset%>%
   mutate_at(c('MARSTAT'),funs(str_replace(., "1", "Partnered")))
 
-new_dataset <- new_dataset%>%
+filtered_dataset <- filtered_dataset%>%
   mutate_at(c('MARSTAT'),funs(str_replace(., "2", "Single")))
 
-new_dataset <- new_dataset%>%
+filtered_dataset <- filtered_dataset%>%
   mutate_at(c('MARSTAT'),funs(str_replace(., "3", "Single")))
 
-new_dataset <- new_dataset%>%
+filtered_dataset <- filtered_dataset%>%
   mutate_at(c('MARSTAT'),funs(str_replace(., "4", "Single")))
 
-new_dataset <- new_dataset%>%
+filtered_dataset <- filtered_dataset%>%
   mutate_at(c('MARSTAT'),funs(str_replace(., "5", "Single")))
 
-new_dataset <- new_dataset%>%
+filtered_dataset <- filtered_dataset%>%
   mutate_at(c('MARSTAT'),funs(str_replace(., "6", "Partnered")))
 
-new_dataset <- new_dataset %>%
+filtered_dataset <- filtered_dataset %>%
   mutate(LONELINESS = rowSums(cbind(LONELY_A, LONELY_B, LONELY_C)))
 
 ```
@@ -69,12 +81,77 @@ new_dataset <- new_dataset %>%
 
 #Normality
 ```{r}
-ggplot(new_dataset, aes(x = LONELINESS)) + geom_histogram(binwidth = 1) + theme_classic()
+ggplot(filtered_dataset, aes(x = LONELINESS)) + geom_histogram(binwidth = 1) + theme_classic()
 
-ggplot(new_dataset, aes(x = LONELINESS)) + geom_density(adjust = 2)  + theme_classic()
+ggplot(filtered_dataset, aes(x = LONELINESS)) + geom_density(adjust = 2)  + theme_classic()
 
-qq<-ggplot(new_dataset, aes(sample = LONELINESS)) + geom_qq()  + theme_classic()
+qq<-ggplot(filtered_dataset, aes(sample = LONELINESS)) + geom_qq()  + theme_classic()
 
 qq+ geom_qq_line()
+```
+```{r}
+describe(filtered_dataset$LONELINESS)
+#normal
+
+describeBy(LONELINESS ~ SEX, data = filtered_dataset)
+describeBy(LONELINESS ~ MARSTAT, data = filtered_dataset)
+
+```
+
+```{r}
+#Variance
+filtered_dataset%>%
+  group_by(SEX) %>%
+  summarize(variance = var(LONELINESS))
+
+filtered_dataset%>%
+  group_by(MARSTAT) %>%
+  summarize(variance = var(LONELINESS))
+
+```
+```{r}
+leveneTest(LONELINESS~MARSTAT, filtered_dataset)
+
+MANOVA(filtered_dataset, dv = "LONELINESS", between = "MARSTAT")
+
+
+leveneTest(LONELINESS~SEX, filtered_dataset)
+
+MANOVA(filtered_dataset, dv = "LONELINESS", between = "SEX")
+
+```
+
+```{r}
+filtered_dataset$Group <- ifelse(filtered_dataset$SEX == "Female" & filtered_dataset$MARSTAT == "Single", "Single Women", 
+                     ifelse(filtered_dataset$SEX == "Male" & filtered_dataset$MARSTAT == "Single", "Single Men", 
+                            ifelse(filtered_dataset$SEX == "Female" & filtered_dataset$MARSTAT == "Partnered", "Partnered Women", 
+                                   "Partnered Men")))
+```
+
+
+
+```{r}
+
+mod<-MANOVA(filtered_dataset, dv = "LONELINESS", between = c("SEX", "MARSTAT")) 
+
+EMMEANS(mod, effect = "SEX", by = "MARSTAT", p.adjust = "none")
+
+EMMEANS(mod, effect = "MARSTAT", by = "SEX", p.adjust = "none")
+```
+```{r}
+
+plot<-summarySE(filtered_dataset, measurevar="LONELINESS", groupvars=c("SEX", "MARSTAT"))
+
+plot
+
+plot2<-summarySE(filtered_dataset, measurevar="LONELINESS", groupvars=c("Group"))
+
+plot2
+
+ggplot(plot, aes(x = SEX, y = LONELINESS, fill = SEX)) +
+  geom_col() + facet_wrap(~ MARSTAT) + theme_bruce()
+
+ggplot(plot2, aes(x = Group, y = LONELINESS, fill = Group)) +
+  geom_col()  + theme_bruce() + theme(axis.text.x = element_text(angle = -10))
 ```
 
